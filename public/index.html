@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="index.css">
+<script type="text/javascript" src="jquery-3.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script> 
+<script type="text/javascript">
+var socket = io.connect('http://localhost:4000');
+//login function
+function register(){
+	var username = document.getElementById('username').value;
+	//emitting username to the server
+	socket.emit('new user',username,userVerified);
+	
+	function userVerified(data){
+		if(data){
+			$('#login').hide();
+			$('#mario-chat').show();
+		}else{
+			$('ul#usernameError').append('<li>'+'Username is already taken,try again'+'</li>');
+		}
+		
+	}
+	
+}
+ //Emit Event
+function sendMessage(){
+//Query Dom
+	var output = document.getElementById('output');
+	var message = document.getElementById('message').value;		
+	socket.emit('chat',message);	
+}
+//listening for emitted events from the server
+socket.on('chat',displayMessage);
+socket.on('typing',showTyper);
+socket.on('showUsers',onlineUsers);
+
+//displaying online users
+function onlineUsers(data){
+	$('ul#users').empty();	
+		for(var i=0;i<data.length;i++){
+		console.log(data[i]);
+			$('ul#users').append('<li>'+data[i]+'</li>');
+		}
+}
+//displaying message to all the clients
+function displayMessage(data){
+	var output = document.getElementById('output');
+	$(output).append('<p>'+'<strong>'+data.username+':'+'</strong>'+data.message+'</p>'+'<br/>');
+}
+var messageBox = document.getElementById('message');
+messageBox.addEventListener('keypress',handleTyping);
+	
+function handleTyping(){
+	var handle = document.getElementById('handle').value;
+	socket.emit('typing',{
+	handle:handle
+	});
+}
+		
+function showTyper(data){
+	var feedback = document.getElementById('feedback');
+	$(feedback).append('<p>'+'<em>'+data.handle+' is typing a message...'+'</em>'+'</p>');
+}
+</script>
+</head>
+<body>
+	<!-- Login side -->
+	<div id="login">
+	<h1>Welcome to a chat app,sign in to login</h1>
+		<form>
+			<table cellpadding="10" cellspacing="10">
+				<tr>
+					<td></td>
+					<td><ul id="usernameError"></ul></td>
+				</tr>
+				
+				<tr>
+					<td><p>Enter Username:</p></td>
+					<td><input type="text" id="username"></td>
+				</tr>
+			</table>
+		</form>
+		<input type="submit" id="userSubmit" onclick="register()" value="login">
+	</div>
+	<!-- chat side -->
+	<div id="mario-chat">
+		<section>
+			<div id="chatWindow">
+				<div id="output"></div>
+				<div id="feedback"></div>
+			</div>
+			<input type="text" id="message" placeholder="  Message"><br/>
+			<button id="send" onclick="sendMessage()">Send</button>
+		</section>
+		<section>
+			<h3>Online Users</h3>
+			<ul id="users"></ul>
+		</section>
+	</div>
+</body>
+</html>
